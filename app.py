@@ -3,9 +3,9 @@ import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import matplotlib
+import re
 
-
-DATA_FILE = 'spotify_song_audio_features_norm.csv'
+DATA_FILE = 'spotify_song_audio_features_norm_25k.csv'
 
 AUDIO_FEATURES = [
     'danceability', 'energy', 'key', 'loudness', 'mode', 
@@ -14,6 +14,37 @@ AUDIO_FEATURES = [
 ]
 SENTIMENT_FEATURE = ['sentiment']
 
+def filter_similar_variants(results_df):
+    """
+    Filters out duplicate versions (Radio Edits, Remasters, Features)
+    while preserving covers (same title, different primary artist).
+    """
+    df = results_df.copy()
+
+    # gets the main part of the title (excluding (Remaster version), (Radio edit), (feat. X), etc)
+    def clean_title(text):
+        text = str(text).lower()
+        # Remove text in parentheses/brackets and specific suffixes
+        text = re.sub(r"\(.*?\)", "", text) 
+        text = re.sub(r"\[.*?\]", "", text)
+        text = re.sub(r"\-.*remaster.*", "", text)
+        text = re.sub(r"\-.*radio edit.*", "", text)
+        return text.strip()
+
+    # gets "artist" - "featured artist"
+    def get_primary_artist(text):
+        text = str(text)
+        # Clean list formatting and take the first artist
+        text = text.replace("['", "").replace("']", "").replace("', '", ",")
+        return text.split(",")[0].strip().lower()
+
+    df['clean_title_temp'] = df['name'].apply(clean_title)
+    df['primary_artist_temp'] = df['artists'].apply(get_primary_artist)
+
+    # Drop duplicate if both Clean Title AND Primary Artist match
+    df_filtered = df.drop_duplicates(subset=['clean_title_temp', 'primary_artist_temp'], keep='first')
+
+    return df_filtered.drop(columns=['clean_title_temp', 'primary_artist_temp'])
 
 @st.cache_data
 def load_data():
@@ -51,7 +82,7 @@ selected_songs = st.sidebar.multiselect(
     "Select from results:",
     options=combined_options,
     default=current_selections,
-    key='final_selection_widget',\
+    key='final_selection_widget',
     on_change=lambda: st.session_state.update({'selected_songs': st.session_state.final_selection_widget})
 )
 
@@ -102,9 +133,14 @@ if st.sidebar.button("Generate Playlist", type="primary"):
         # Exclude seed playlist
         results = df[~df['search_label'].isin(selected_songs)]
         
-        # Get X reccommendations
-        results = results.sort_values(by='similarity', ascending=False).head(num_recs)
+        # Sort results by similarity
+        results = results.sort_values(by='similarity', ascending=False)
 
+        # Filter out similar variants (e.g. Radio Edits)
+        results = filter_similar_variants(results)
+
+        # Get top recommendations
+        results = results.head(num_recs)
 
         st.divider()
         st.subheader("Generated Playlist")
