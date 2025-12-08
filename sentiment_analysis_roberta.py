@@ -25,6 +25,7 @@ class LyricsDataset(Dataset):
 def run_analysis():
     print(f"Starting optimized build with {SAMPLE_SIZE} songs...")
 
+    # need to have torch gpu version to use GPU
     device = 0 if torch.cuda.is_available() else -1
     device_name = torch.cuda.get_device_name(0) if device == 0 else 'CPU'
     print(f"Device: {device_name}")
