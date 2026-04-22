@@ -1,4 +1,4 @@
-# AI Playlist Generator (Group 119)
+# LyricAL Playlist Generator
 
 ### 1. Installation
 Ensure you have Python 3.8+ installed.
@@ -12,7 +12,7 @@ Ensure you have Python 3.8+ installed.
    source venv/bin/activate
    # Install requirements
     pip install -r requirements.txt
-   pip install torch --index-url [https://download.pytorch.org/whl/cu118](https://download.pytorch.org/whl/cu118) # for gpu version
+   pip install torch --index-url [https://download.pytorch.org/whl/cu118](https://download.pytorch.org/whl/cu118) # for gpu wheels
 
 2. **Run the app:**
     ```bash
